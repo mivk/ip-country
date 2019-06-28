@@ -1,4 +1,3 @@
-# cat /usr/local/bin/get-ripe-country
 #!/bin/bash
 
 # Get country IP addresses from RIPE
