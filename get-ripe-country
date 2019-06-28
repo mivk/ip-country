@@ -1,0 +1,134 @@
+# cat /usr/local/bin/get-ripe-country
+#!/bin/bash
+
+# Get country IP addresses from RIPE
+## See https://stat.ripe.net/docs/data_api
+
+myversion=0.23
+me=$(basename "$0")
+
+ripe_url="https://stat.ripe.net/data/country-resource-list/data.json?v4_format=prefix;resource="
+
+
+#### FUNCTIONS
+
+usage() {
+    cat <<EOF
+
+    Usage: $me -c country [more options]
+
+    Options:
+        -c tld        : tld/country code
+        -o output dir : Output directory (default: /tmp)
+        -s size       : minimum file size to trust the data (default = 5000)
+
+        -d            : Debug
+        -h            : This help
+EOF
+}
+
+die() {
+    echo "$@" 1>&2
+    exit 1;
+}
+
+warn() {
+    er="$@"
+    echo "$er" 1>&2
+    errors+=("$er")
+}
+
+#### PARSE ARGUMENTS
+
+while getopts "c:o:s:dh" opt; do
+    case $opt in
+        c) country=$OPTARG;;
+        o) out_dir=$OPTARG;;
+        s) min_size=$OPTARG;;
+        d) debug=true;;
+        h) usage;;
+    esac
+done
+shift $((OPTIND -1))
+
+min_size=${min_size:-5000}  # default is 5000 bytes
+out_dir=${out_dir:-/tmp}
+
+
+if [ -z "$country" ]; then
+    usage
+    exit 1
+fi
+
+url="$ripe_url$country"
+
+# use curl or wget, depending on which one we find
+curl_or_wget=$(if hash curl 2>/dev/null; then echo "curl -s"; elif hash wget 2>/dev/null; then echo "wget -qO-"; fi);
+if [ -z "$curl_or_wget" ]; then
+	echo "Neither curl nor wget found. Cannot download data." >&2
+	exit 1
+fi
+
+# check we have jq
+if ! hash jq; then
+	echo "Cannot find the jq Json processor. Install it with 'apt install jq' or similar" >&2
+	exit 1
+fi
+
+tmpfile=$(mktemp "/tmp/ripe-$country-XXXX.json")
+
+[ $debug ] && echo "Trying: $curl_or_wget '$url'" >&2
+
+$curl_or_wget "$url" > $tmpfile
+rv=$?
+
+if [ $rv -gt 0 ]; then
+	echo "Error $rv trying to run $curl_or_wget $url" >&2
+	exit $rv
+fi
+
+status=$(jq -r '.status' $tmpfile)
+if [ ! "$status" = "ok" ]; then
+	echo "Error: response status = '$status' (not 'ok')" >&2
+	echo "See full response in $tmpfile" >&2
+	exit 1
+fi
+
+ripe_db_time=$(jq -r '.data.query_time' $tmpfile)
+[ $debug ] && echo "ripe_db_time=$ripe_db_time" >&2
+date_new=$(date -d "$ripe_db_time" +%s)
+
+family=ipv4
+
+out_list="$out_dir/${family}_$country"
+if [ -f "$out_list" ]; then
+	date_old=$(stat --printf "%Y" "$out_list")
+else
+	date_old=0
+fi
+
+if [ ! $date_new -gt $date_old ]; then
+	[ $debug ] && echo "data.querytime $date_new ($ripe_db_time) not newer than $out_list time $date_old ($(date --date=@$date_old)). Exiting" >&2
+	[ $debug ] && echo "Not removing $tmpfile!" >&2
+	exit 0
+fi
+
+for family in ipv4 ipv6; do
+	out_list="$out_dir/${family}_$country"
+	jq -r ".data.resources.$family | .[]" $tmpfile > $out_list.new
+	touch -d "$ripe_db_time" "$out_list.new"
+	### Check for minimum size before updating our list
+	size=$(stat --printf %s "$out_list.new")
+	if [ "$size" -gt "$min_size" ]; then
+		[ $debug ] && echo " size = $size" >&2
+		mv "$out_list.new" "$out_list"
+		[ $debug ] && echo "OK $out_list" >&2
+	else
+		echo "Warning: $size not greater than minimum $min_size. Probably an error." >&2
+		if [ ! $debug ]; then
+			echo "Removing $out_list.new" >&2
+			rm "$out_list.new"
+		fi
+		exit 1
+	fi
+done
