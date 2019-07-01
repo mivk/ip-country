@@ -19,9 +19,10 @@ IP addresses / Countries stuff: ripe-country-ips, ip2country, etc.
     cp -v /usr/share/doc/geoipupdate/examples/GeoIP.conf.default /etc/GeoIP.conf
 
     # cat /etc/GeoIP.conf
-	> UserId 0
-	> LicenseKey 000000000000
-	> ProductIds GeoLite2-Country GeoLite2-City
+
+> UserId 0<br>
+> LicenseKey 000000000000<br>
+> ProductIds GeoLite2-Country GeoLite2-City<br>
 
     geoipupdate
 
