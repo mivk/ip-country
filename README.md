@@ -1,7 +1,7 @@
 # ip-country
 IP addresses / Countries stuff: ripe-country-ips, ip2country, etc.
 
-## Install GeoIP and ip2country (Debian 9 Jessie example)
+## Install GeoIP and ip2country (Debian 9 Stretch example)
 
     dpkg -l | grep -i geoip
     apt remove geoip-bin geoip-database geoip-database-contrib
