@@ -1,0 +1,75 @@
+#!/usr/bin/perl
+
+## List MaxMind GeoLite IPs by country (for use with ipset)
+## Only gets IPv4 addresses. Could be adapted to also get IPv6
+
+## apt install libtext-csv-xs-perl libtext-csv-perl ipset
+
+# mkdir -p /var/local/geolite2-csv
+# cd /var/local/geolite2-csv
+# wget -N -nv -q https://geolite.maxmind.com/download/geoip/database/GeoLite2-Country-CSV.zip
+# unzip -u -q -j GeoLite2-Country-CSV.zip
+
+# country=CH
+# ipset -exist create geo_$country hash:net
+# ipset flush geo_$country
+# geolite2iplist $country | while read ip; do ipset -exist add geo_$country $ip; done
+
+
+my $VERSION  = 0.02;
+my $debug    = 0;
+
+use strict;
+
+use Text::CSV_XS;
+use open qw( :encoding(UTF-8) :std );
+
+my $csv_locations_file = '/var/local/geolite2-csv/GeoLite2-Country-Locations-en.csv';
+my $csv_ipv4_file      = '/var/local/geolite2-csv/GeoLite2-Country-Blocks-IPv4.csv';
+
+
+my $wanted = uc shift;
+unless ($wanted && $wanted =~ /^[A-Z]{2}$/) {
+	die "Usage: $0 country_code\n\n",
+		"example:\n",
+		"        $0 US\n";
+}
+
+
+die "Not found: $csv_locations_file\n" unless (-f $csv_locations_file);
+die "Not found: $csv_ipv4_file\n"      unless (-f $csv_ipv4_file);
+
+
+my $csv_loc = Text::CSV_XS->new ( { binary => 1, sep_char => ","} )
+	or die "Cannot use CSV: ".Text::CSV->error_diag ();
+my $csv_ipv4 = Text::CSV_XS->new ( { binary => 1, sep_char => ","} )
+	or die "Cannot use CSV: ".Text::CSV->error_diag ();
+
+open my $fhloc, "<:encoding(utf8)", $csv_locations_file or die "$csv_locations_file : $!\n";
+open my $fhips, "<:encoding(utf8)", $csv_ipv4_file      or die "$csv_ipv4_file : $!\n";
+
+$csv_loc->column_names( $csv_loc->getline  ($fhloc)) or die "Couldn't get column names from $csv_locations_file\n";
+$csv_ipv4->column_names($csv_ipv4->getline ($fhips)) or die "Couldn't get column names from $csv_ipv4_file\n";
+
+
+my %countries;
+my %wanted_ids;
+
+while ( my $hr = $csv_loc->getline_hr( $fhloc ) ) {
+	#geoname_id,locale_code,continent_code,continent_name,country_iso_code,country_name,is_in_european_union
+	my ($id, $iso, $name) = @{$hr}{qw(geoname_id country_iso_code country_name)} ;
+	$countries{ $id } = "$iso-$name";
+	if ($wanted eq $iso) {
+		$wanted_ids{$id} = $iso;
+	}
+}
+
+while ( my $hr = $csv_ipv4->getline_hr( $fhips ) ) {
+	#network,geoname_id,registered_country_geoname_id,represented_country_geoname_id,is_anonymous_proxy,is_satellite_provider
+	print $hr->{'network'}, "\n" if (exists $wanted_ids{ $hr->{'geoname_id'} });
+}
+
+$csv_loc->eof  or $csv_loc->error_diag();
+$csv_ipv4->eof or $csv_ipv4->error_diag();
+
+__END__

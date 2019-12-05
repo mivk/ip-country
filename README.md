@@ -1,5 +1,5 @@
 # ip-country
-IP addresses / Countries stuff: ripe-country-ips, ip2country, etc.
+IP addresses / Countries stuff
 
 ## Install GeoIP and ip2country
 

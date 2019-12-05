@@ -3,6 +3,8 @@
 # Get country IP addresses from RIPE
 ## See https://stat.ripe.net/docs/data_api
 
+## apt install jq
+
 myversion=0.23
 me=$(basename "$0")
 
