@@ -5,7 +5,7 @@
 
 ## apt install jq
 
-myversion=0.23
+myversion=0.24
 me=$(basename "$0")
 
 ripe_url="https://stat.ripe.net/data/country-resource-list/data.json?v4_format=prefix;resource="
@@ -126,10 +126,9 @@ for family in ipv4 ipv6; do
 		[ $debug ] && echo "OK $out_list" >&2
 	else
 		echo "Warning: $size not greater than minimum $min_size. Probably an error." >&2
-		if [ ! $debug ]; then
-			echo "Removing $out_list.new" >&2
-			rm "$out_list.new"
-		fi
+		dt=$(date +%F_%H%M%S)
+		echo "Moving $out_list.new to $out_list-$dt.bad" >&2
+		mv "$out_list.new" "$out_list-$dt.bad"
 		exit 1
 	fi
 done
