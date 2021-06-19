@@ -8,7 +8,7 @@
 myversion=0.24
 me=$(basename "$0")
 
-ripe_url="https://stat.ripe.net/data/country-resource-list/data.json?v4_format=prefix;resource="
+ripe_url="https://stat.ripe.net/data/country-resource-list/data.json?v4_format=prefix&resource="
 
 
 #### FUNCTIONS
