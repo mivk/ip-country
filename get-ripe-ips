@@ -5,7 +5,7 @@
 
 ## apt install jq
 
-myversion=0.24
+myversion=0.24.2
 me=$(basename "$0")
 
 ripe_url="https://stat.ripe.net/data/country-resource-list/data.json?v4_format=prefix&resource="
@@ -30,7 +30,7 @@ EOF
 
 die() {
     echo "$@" 1>&2
-    exit 1;
+    exit 1
 }
 
 warn() {
@@ -90,8 +90,11 @@ fi
 
 status=$(jq -r '.status' $tmpfile)
 if [ ! "$status" = "ok" ]; then
-	echo "Error: response status = '$status' (not 'ok')" >&2
-	echo "See full response in $tmpfile" >&2
+	ripe_msg=$(jq -r -c '.messages' $tmpfile)
+	echo "Error: RIPE replied with status = '$status'." >&2
+	echo "The requested url was '$url'" >&2
+	echo "and the messages in their reply were: '$ripe_msg'" >&2
+	echo "The full response is in $tmpfile" >&2
 	exit 1
 fi
 
