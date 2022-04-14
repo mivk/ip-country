@@ -7,6 +7,7 @@ IP addresses / Countries stuff
     chmod -c +x get-ripe-ips 
     mv -v get-ripe-ips /usr/local/bin/
 
+Also make sure you have the [`jq` JSON processor](https://stedolan.github.io/jq/)  (install with `apt install jq` or similar)
 ## Install GeoIP and ip2country
 
 ### Cleanup old stuff
