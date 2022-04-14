@@ -1,6 +1,12 @@
 # ip-country
 IP addresses / Countries stuff
 
+## Install get-ripe-ips
+
+    wget https://github.com/mivk/ip-country/raw/master/get-ripe-ips
+    chmod -c +x get-ripe-ips 
+    mv -v get-ripe-ips /usr/local/bin/
+
 ## Install GeoIP and ip2country
 
 ### Cleanup old stuff
